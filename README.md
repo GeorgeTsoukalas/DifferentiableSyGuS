@@ -16,7 +16,7 @@ We propose an end-to-end differentiable program synthesizer for SyGuS. More deta
 ## Setup
 
 ```
-export PYTHONPATH=your_path_to/diffprogsynth/
+export PYTHONPATH=your_path_to/DifferentiableSyGuS/
 ```
 
 ## Run (-single_sample to specify a benchmark) 
