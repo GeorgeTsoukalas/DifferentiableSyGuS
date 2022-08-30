@@ -16,6 +16,11 @@ We propose an end-to-end differentiable program synthesizer for SyGuS. More deta
 ## Setup
 
 ```
+cd metal/spec_encoder/
+make
+```
+
+```
 export PYTHONPATH=your_path_to/DifferentiableSyGuS/
 ```
 
