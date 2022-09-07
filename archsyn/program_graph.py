@@ -1683,7 +1683,7 @@ class ProgramGraph(nn.Module):
                                         lst = []
                                         for j in group1:
                                             lst.append(target_edge.W[j])
-                                        new_edge.W = torch.tensor(lst, requires_grad=True)
+                                        new_edge.W = torch.tensor(lst, requires_grad=True, device=new_edge.device)
                                         assert len(node.prog_dict[type_sign]) == 1
                                         node.prog_dict[type_sign][0].submodules[submodule] = new_edge
                 else:
@@ -1697,7 +1697,7 @@ class ProgramGraph(nn.Module):
                         lst = []
                         for j in group2:
                             lst.append(target_edge.W[j])
-                        new_edge.W = torch.tensor(lst, requires_grad=True)
+                        new_edge.W = torch.tensor(lst, requires_grad=True, device=new_edge.device)
                         node.prog_dict[type_sign][0].submodules[submodule] = new_edge
                         continue
                     for node_idx, node in enumerate(cur_nodes):
