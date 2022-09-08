@@ -2,7 +2,7 @@
 
 ## Introduction
 
-We propose an end-to-end differentiable program synthesizer for SyGuS. More details of the algorithm is given in [Differentiable Synthesis of Program Architectures](https://proceedings.neurips.cc/paper/2021/file/5c5a93a042235058b1ef7b0ac1e11b67-Paper.pdf) with its implementation available at [dPads](https://github.com/RU-Automated-Reasoning-Group/dPads).
+We propose an end-to-end differentiable program synthesizer for SyGuS. More details of the algorithm are given in [Differentiable Synthesis of Program Architectures](https://proceedings.neurips.cc/paper/2021/file/5c5a93a042235058b1ef7b0ac1e11b67-Paper.pdf) with its implementation available at [dPads](https://github.com/RU-Automated-Reasoning-Group/dPads).
 
 
 ## Requirements
