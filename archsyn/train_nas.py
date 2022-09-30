@@ -22,6 +22,7 @@ import pdb
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    print(parser.prog)
     # Args for experiment setup
     parser.add_argument('-t', '--trial', type=int, required=True,
                         help="trial ID")
@@ -138,16 +139,19 @@ def parse_args():
                         help="max enumeration depth for genetic algorithm")
     parser.add_argument('--cell_depth', type=int, required=False, default=3,
                         help="max depth for each cell for nas algorithm")
-
+    print("Got all the way!")
     return parser.parse_args()
 
 
 if __name__ == '__main__':
+    print("made it?")
     args = parse_args()
-
     if 'crim13' in args.exp_name:
         print('crim13 experiment')
         from dsl_crim13 import DSL_DICT, CUSTOM_EDGE_COSTS
+    elif 'inv' in args.exp_name:
+        print('inv experiment')
+        from dsl_inv import DSL_DICT, CUSTOM_EDGE_COSTS
     elif 'example' in args.exp_name:
         print('example experiment')
         from dsl_current import DSL_DICT, CUSTOM_EDGE_COSTS
@@ -267,6 +271,28 @@ if __name__ == '__main__':
         }
     # crim13
     elif 'crim13' in args.exp_name:
+        train_config = {
+            'arch_lr' : args.search_learning_rate,
+            'model_lr' : args.search_learning_rate, 
+            'train_lr' : args.learning_rate,
+            'search_epoches' : args.neural_epochs,
+            'finetune_epoches' : args.symbolic_epochs,
+            'arch_optim' : optim.Adam,
+            'model_optim' : optim.Adam,
+            'lossfxn' : lossfxn,
+            'evalfxn' : label_correctness,
+            'num_labels' : args.num_labels,
+            'save_path' : save_path,
+            'topN' : args.topN_select,
+            'arch_weight_decay' : 0,
+            'model_weight_decay' : 0,
+            'secorder' : args.sec_order,
+            'penalty' : args.penalty,
+            'specific' : [[None, 2, 0.001, 8], [4, 2, 0.001, 3], [3, 2, 0.001, 3], [2, 2, 0.001, 3], \
+                    [None, 4, 0.001, 5], [4, 4, 0.001, 3], [3,4, 0.001, 3], [2, 4, 0.001, 0], ["astar", 4, 0.001, args.neural_epochs]]
+        }
+    # inv 
+    elif 'inv' in args.exp_name:
         train_config = {
             'arch_lr' : args.search_learning_rate,
             'model_lr' : args.search_learning_rate, 
