@@ -15,6 +15,7 @@ from utils.data_loader import flatten_batch
 import dsl
 import pickle
 import os
+import time 
 
 class NAS(ProgramLearningAlgorithm):
 
@@ -41,6 +42,8 @@ class NAS(ProgramLearningAlgorithm):
 
         # init optimizer
         model_params, _ = graph.get_model_params()
+        print("The model parameters are", model_params)
+        #assert False
         if (model_params == []):
             model_optim = None
             model_params_list = []
@@ -49,7 +52,8 @@ class NAS(ProgramLearningAlgorithm):
             model_params_list = []
             for param_dict in model_params:
                 model_params_list += param_dict['params']
-
+        print("Model parameter list is ", model_params_list)
+        #assert False
         # prepare validation data
         validset = train_loader.validset
 
@@ -77,15 +81,30 @@ class NAS(ProgramLearningAlgorithm):
                 # pass through graph
                 train_predicted = graph.execute_graph(batch_input, output_type, output_size, device, clear_temp=False, cur_arch_train=True)
 
+                # L1 regularization for bringing down coefficients which are unnecessary
+                # Note: As implemented here, I think the bias term may be seperately regulated, which is probably better
+                l1_regularization = torch.tensor(0.0)
+                for param in model_params_list:
+                    print("Param is ", param)
+                    print(torch.norm(param, 1)**2)
+                    l1_regularization += torch.norm(param, 1)**2
+                print(l1_regularization)
+
+
+
+                #assert False
                 # backprop
-                ratio = 1.0
-                loss = ratio * lossfxn(train_predicted, true_vals)
+                ratio = 0.5
+                print("Predicted value loss is ", lossfxn(train_predicted, true_vals))
+                loss = ratio * lossfxn(train_predicted, true_vals) + l1_regularization
+                #loss = ratio * lossfxn(train_predicted, true_vals)
                 if model_optim is not None:
                     model_optim.zero_grad()
                 loss.backward()
 
                 # debug
                 if loss.cpu().item() != loss.cpu().item():
+                    assert False # Added 1/19 just to check whether this occurs
                     with torch.no_grad():
                         train_predicted_index = torch.mean(torch.mean(train_predicted, dim=-1).view(len(batch_input), -1), dim=-1) #Note: this might be diffrent than the given loss function when changed
                         indxs = torch.logical_and(train_predicted_index == train_predicted_index, torch.abs(train_predicted_index) < 50)
@@ -306,6 +325,14 @@ class NAS(ProgramLearningAlgorithm):
         # debug
         if ratio is not None:
             loss = loss * ratio
+            l1_regularization = torch.tensor(0.0) #added recently 
+            print("Indeed ratio is not none")
+            for param in model_params_list:
+                print("Param is ", param)
+                print(torch.norm(param, 1)**2)
+                l1_regularization += torch.norm(param, 1)**2
+            print(l1_regularization)
+            loss += l1_regularization
         if manual_loss is not None:
             loss += manual_loss
 
@@ -325,7 +352,8 @@ class NAS(ProgramLearningAlgorithm):
                 clip_norm = nn.utils.clip_grad_norm_(clip_params, 0.25)
                 assert clip_norm.item() == clip_norm.item()
 
-        if early_cut:
+        if early_cut: # don't think this is happening, but of course cannot be 100% sure
+            assert False # indeed it goes to this
             log_and_print('get Nan, delete invalid branch')
             # delete Nan programs
             with torch.no_grad():
