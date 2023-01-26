@@ -173,7 +173,7 @@ def parse_args():
     parser.add_argument('-top_left', type=bool, default=False, help="set to true to use top-left partition")
     parser.add_argument('-GM', type=bool, default=False, help="set to true to use Gradient Matching")
 
-    parser.add_argument('--problem_num', type = int, default = 1, help = "The problem number from the cln2inv benchmarks")
+    parser.add_argument('--problem_num', type = int, default = 0, help = "The problem number from the cln2inv benchmarks")
     return parser.parse_args()
 
 #Print program in Sygus format. (Not used anywhere currently, don't need SyExp format to evaluate the program anymore)
@@ -244,27 +244,27 @@ variable_dictionary = {
     95: ["i", "j", "x", "y"],
     94: ["i", "j", "k", "n"],
     93: ["i", "n", "x", "y"],
-    92: ["x", "y", "z1", "z2", "z3"],
+    92: ["x","y"],#["x", "y", "z1", "z2", "z3"],
     91: ["x", "y"],
-    90:  ["lock", "x", "y", "v1", "v2", "v3"],
+    90: ["lock", "x", "y"],# ["lock", "x", "y", "v1", "v2", "v3"],
     9: ["x", "y"],
-    89: ["lock", "x", "y", "v1", "v2", "v3"],
+    89: ["lock", "x", "y"],# ["lock", "x", "y", "v1", "v2", "v3"],
     88: ["lock", "x", "y"],
     87: ["lock", "x", "y"],
-    86: ["x", "y", "z1", "z2", "z3"],
-    85: ["x", "y", "z1", "z2", "z3"],
+    86: ["x", "y", "z1", "z2", "z3"], # for some reason it runs here, but shouodn't
+    85: ["x", "y", "z1", "z2", "z3"], # for some reason it runs here, but shouldn't
     84: ["x", "y"],
     83: ["x", "y"],
-    82:["i", "x", "y", "z1", "z2", "z3"],
-    81:["i", "x", "y", "z1", "z2", "z3"],
-    80: ["i", "x", "y", "z1", "z2", "z3"],
+    82: ["i", "x", "y"],#["i", "x", "y", "z1", "z2", "z3"],
+    81: ["i", "x", "y"],#["i", "x", "y", "z1", "z2", "z3"],
+    80: ["i", "x", "y"],#["i", "x", "y", "z1", "z2", "z3"],
     8: ["x", "y"],
     79: ["i", "x", "y"],
     78: ["i", "x", "y"],
     77: ["i", "x", "y"],
-    76: ["c", "y", "z", "x1", "x2", "x3"],
-    75: ["c", "y", "z", "x1", "x2", "x3"],
-    74: ["c", "y", "z", "x1", "x2", "x3"],
+    76: ["c","y","z"],#["c", "y", "z", "x1", "x2", "x3"],
+    75: ["c","y","z"],#["c", "y", "z", "x1", "x2", "x3"],
+    74: ["c","y","z"], #["c", "y", "z", "x1", "x2", "x3"],
     73: ["c", "y", "z"],
     72: ["c", "y", "z"],
     71: ["c", "y", "z"],
@@ -277,17 +277,17 @@ variable_dictionary = {
     65: ["x", "y"],
     64: ["x", "y"],
     63: ["x", "y"],
-    62: ["c", "n", "v1", "v2", "v3"],
-    61: ["c", "n", "v1", "v2", "v3"],
-    60: ["c", "n", "v1", "v2", "v3"],
-    6: ["v1", "v2", "v3", "x", "size", "y", "z"], # like in other cases, some of these variables are predeclared to be a specific value. It is worth checking to see if we can reduce the variable load by looking at the interaction with z3
-    59:["c", "n", "v1", "v2", "v3"],
-    58:["c", "n", "v1", "v2", "v3"],
-    57:["c", "n", "v1", "v2", "v3"],
-    56:["c", "n", "v1", "v2", "v3"],
-    55:["c", "n", "v1", "v2", "v3"],
-    54:["c", "n", "v1", "v2", "v3"],
-    53: ["c", "n", "v1", "v2", "v3"],
+    62: ["c","n"],#["c", "n", "v1", "v2", "v3"],
+    61: ["c","n"],#["c", "n", "v1", "v2", "v3"],
+    60: ["c","n"],#["c", "n", "v1", "v2", "v3"],
+    6: ["x", "size", "y", "z"],#["v1", "v2", "v3", "x", "size", "y", "z"], # like in other cases, some of these variables are predeclared to be a specific value. It is worth checking to see if we can reduce the variable load by looking at the interaction with z3
+    59: ["c","n"],#["c", "n", "v1", "v2", "v3"],
+    58: ["c","n"], #["c", "n", "v1", "v2", "v3"],
+    57: ["c","n"],#["c", "n", "v1", "v2", "v3"],
+    56: ["c", "n"],#["c", "n", "v1", "v2", "v3"],
+    55: ["c","n"],#["c", "n", "v1", "v2", "v3"],
+    54:["c", "n"],#["c", "n", "v1", "v2", "v3"],
+    53: ["c", "n"],#["c", "n", "v1", "v2", "v3"], # some of these are bad but the first invariant actualy works
     52: ["c"],
     51: ["c"],
     50: ["c"],
@@ -308,10 +308,10 @@ variable_dictionary = {
     37:["c"],
     36:["c"],
     35:["c"],
-    34:["n", "v1", "v2", "v3", "x"],
-    33:["n", "v1", "v2", "v3", "x"],
-    32:["n", "v1", "v2", "v3", "x"],
-    31: ["n", "v1", "v2", "v3", "x"],
+    34: ["n","x"],#["n", "v1", "v2", "v3", "x"],
+    33: ["n","x"],#["n", "v1", "v2", "v3", "x"],
+    32: ["n","x"],#["n", "v1", "v2", "v3", "x"],
+    31: ["n","x"],#["n", "v1", "v2", "v3", "x"],
     30: ["x"],
     3: ["x", "y", "z"],
     29:["n", "x"],
@@ -321,40 +321,40 @@ variable_dictionary = {
     25: ["x"],
     24:["i", "j"],
     23: ["i", "j"],
-    22: ["x", "m", "n", "z1", "z2", "z3"],
-    21: ["x", "m", "n", "z1", "z2", "z3"],
-    20:  ["x", "m", "n", "z1", "z2", "z3"],
+    22: ["x","m","n"],#["x", "m", "n", "z1", "z2", "z3"],
+    21: ["x","m","n"], #["x", "m", "n", "z1", "z2", "z3"],
+    20:  ["x","m","n"], #["x", "m", "n", "z1", "z2", "z3"],
     2: ["x", "y"],
-    19: ["x", "m", "n", "z1", "z2", "z3"],
+    19: ["x","m","n"], #["x", "m", "n", "z1", "z2", "z3"],
     18:["x", "m", "n"],
     17:["x", "m", "n"],
     16: ["x", "m", "n"],
     15: ["x", "m", "n"],
-    14:["x", "y", "z1", "z2", "z3"],
+    14: ["x", "y"], #["x", "y", "z1", "z2", "z3"],
     133: ["n", "x"],
     132: ["i", "j", "c", "t"],
     131: ["d1", "d2", "d3", "x1", "x2", "x3"],
     130: ["d1", "d2", "d3", "x1", "x2", "x3"],
-    13: ["x", "y", "z1", "z2", "z3"],
-    129: ["x", "y", "z1", "z2", "z3"],
+    13: ["x", "y"], #["x", "y", "z1", "z2", "z3"],
+    129: ["x", "y"], #["x", "y", "z1", "z2", "z3"],
     128: ["x", "y"],
-    127: ["i", "j", "x", "y", "z1", "z2", "z3"],
-    126: ["i", "j", "x", "y", "z1", "z2", "z3"],
+    127: ["i", "j", "x", "y"],#["i", "j", "x", "y", "z1", "z2", "z3"],
+    126: ["i", "j", "x", "y"],#["i", "j", "x", "y", "z1", "z2", "z3"],
     125: ["i", "j", "x", "y"],
     124: ["i", "j", "x", "y"],
-    123: ["i", "size", "sn", "v1", "v2", "v3"],
-    122: ["i", "size", "sn", "v1", "v2", "v3"],
+    123: ["i", "size", "sn"],#["i", "size", "sn", "v1", "v2", "v3"],
+    122: ["i", "size", "sn"], #["i", "size", "sn", "v1", "v2", "v3"],
     121: ["i", "sn"],
     120: ["i", "sn"],
-    12: ["x", "y", "z1", "z2", "z3"],
+    12: ["x", "y"], #["x", "y", "z1", "z2", "z3"],
     119: ["i", "size", "sn"],
     118: ["i", "size", "sn"],
-    117: ["sn", "v1", "v2", "v3", "x"],
-    116: ["sn", "v1", "v2", "v3", "x"],
+    117: ["sn", "x"], #["sn", "v1", "v2", "v3", "x"],
+    116: ["sn", "x"],#["sn", "v1", "v2", "v3", "x"],
     115: ["sn", "x"],
     114: ["sn", "x"],
-    113: ["i", "n", "sn", "v1", "v2", "v3"],
-    112: ["i", "n", "sn", "v1", "v2", "v3"],
+    113: ["i", "n", "sn"],#["i", "n", "sn", "v1", "v2", "v3"],
+    112: ["i","n", "sn"],#["i", "n", "sn", "v1", "v2", "v3"],
     111: ["i", "n", "sn"],
     110: ["i", "n", "sn"],
     1: ["x", "y"],
@@ -363,13 +363,13 @@ variable_dictionary = {
     101: ["n", "x"],
     102: ["n", "x"],
     103: ["x"],
-    104: ["n", "v1", "v2", "v3", "x"],
-    105: ["n", "v1", "v2", "v3", "x"],
+    104: ["n","x"],#["n", "v1", "v2", "v3", "x"],
+    105: ["n","x"],#["n", "v1", "v2", "v3", "x"],
     106: ["a", "m", "j", "k"],
     107: ["a", "m", "j", "k"],
     108: ["a","c", "m", "j", "k"],
     109: ["a","c", "m", "j", "k"],
-    11: ["x", "y", "z1", "z2", "z3"]
+    11: ["x", "y"] #["x", "y", "z1", "z2", "z3"]
 
 }
 
@@ -379,7 +379,361 @@ def evaluate(algorithm, graph, train_loader, train_config, device):
         metric = algorithm.eval_graph(graph, validset, train_config['evalfxn'], train_config['num_labels'], device)
     return metric
 
+def run_on_problem(problem_num, cmd_args, num_epochs, max_depth, batch_size, lr):
+    # added stuff for cln2inv
+    fname = str(problem_num) + '.c'
+    csvname = str(problem_num) + '.csv'
+    src_path = 'benchmarks-cln2inv/code2inv/c/'
+    check_path = 'benchmarks-cln2inv/code2inv/smt2'
+    trace_path = 'benchmarks-cln2inv/code2inv/csv/'
+
+
+    env = variable_dictionary[problem_num] # replace with some method of getting the program variables (maybe use something from metal)
+
+    invariantChecker = InvariantChecker(fname, check_path)
+    # manual seed all random for debug
+    log_and_print('random seed {}'.format(cmd_args.random_seed))
+    torch.random.manual_seed(cmd_args.random_seed)
+    #torch.manual_seed(cmd_args.seed)
+    np.random.seed(cmd_args.random_seed)
+    random.seed(cmd_args.random_seed)
+    wait = False
+
+    full_exp_name = 'Test'
+    save_path = os.path.join(cmd_args.save_dir, full_exp_name)
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    # init log
+    init_logging(save_path)
+    log_and_print("Starting experiment {}\n".format(full_exp_name))
+
+    #///////////////////////////////
+    #///////////////////////////////
+    #///////////////////////////////
+
+    # TODO allow user to choose device
+    if torch.cuda.is_available():
+        device = 'cuda:0'
+    else:
+        device = 'cpu'
+
+    Testing = True 
+    def lossfxn(out, labels):
+        augmented_out = [(torch.ones(1) - out[l][1]) if labels[l] == 1 else (out[l][0] if labels[l] == 2 else (torch.ones(1) - (torch.ones(1) - out[l][0])*out[l][1])) for l in range(len(out))] 
+        return torch.mean(torch.hstack(augmented_out)) 
+
+
+    if device != 'cpu':
+        lossfxn = lossfxn.cuda()
+
+    #max_depth = 3 #This is a tweakable parameter. The higher the depth, the longer the search.
+    input_size = len(env) 
+    output_size = 1
+    num_labels = 1
+    input_type = output_type = "atom"
+
+    train_config = {
+        'arch_lr' : lr,#cmd_args.search_learning_rate,
+        'model_lr' : lr,#cmd_args.search_learning_rate,
+        'train_lr' : lr,#cmd_args.learning_rate,
+        'search_epoches' : cmd_args.neural_epochs,
+        'finetune_epoches' : cmd_args.symbolic_epochs,
+        'arch_optim' : optim.Adam,
+        'model_optim' : optim.Adam,
+        'lossfxn' : lossfxn,
+        'evalfxn' : value_correctness,
+        'num_labels' : num_labels,
+        'save_path' : save_path,
+        'topN' : cmd_args.topN_select,
+        'arch_weight_decay' : 0,
+        'model_weight_decay' : 0,
+        'penalty' : cmd_args.penalty,
+        'secorder' : cmd_args.sec_order,
+        'specific' : [#[None, 2, 0.01, 5], [4, 2, 0.01, 5], [3, 2, 0.01, 5], [2, 2, 0.01, 5], \
+                [None, max_depth, lr, num_epochs]]#, ["astar", max_depth, 0.1, 5]]#, [4, 4, 0.01, 500], [3, 4, 0.01, 500], [2, 4, 0.01, 500]]#, ["astar", 4, 0.01, cmd_args.neural_epochs]] todo: here is where the epochs are defined for the main training session
+    }
+
+    # Initialize program graph
+    if cmd_args.resume_graph is None:
+        program_graph = ProgramGraph(DSL_DICT, input_type, output_type, input_size, output_size,
+                                    cmd_args.max_num_units, cmd_args.min_num_units, max_depth,
+                                    device, ite_beta = cmd_args.ite_beta, cfg = None, var_ids = None, root_symbol = None)
+        start_depth = 0
+    else:
+        assert os.path.isfile(cmd_args.resume_graph)
+        program_graph = pickle.load(open(cmd_args.resume_graph, "rb"))
+        program_graph.max_depth = max_depth
+        start_depth = program_graph.get_current_depth()
+        # start_depth = 3
+
+    # Initialize algorithm
+    algorithm = NAS(frontier_capacity=cmd_args.frontier_capacity)
+    verification_iter = 0
+    train_data = []
+    train_labels = []
+    # assuming env has already been found
+    print("Environment is ", env)
+    non_loop_invariant = 1.0 * z3.Real(env[0]) >= 0.0 # a non-loop invariant (presumably). this is to get the first data point, note cln2inv warm starts with data from a spreadsheet, I think
+    result = invariantChecker.check_cln([non_loop_invariant], env)
+    #print("The result after initial invariant is ", result)
+    #assert False
+    if result[0]:
+        return "Solved!", result[1], verification_iter
+    else:
+        if result[2] == "loop":
+            train_data.append(result[3])
+            train_labels.append([3.])
+        else:
+            if result[2] == "pre": #then this has given us a true value that the invariant fails on
+                train_data.append([[-1000. for i in env], [float(result_element) for result_element in result[3]]])
+                train_labels.append([1.])
+            elif result[2] == "post": # then this is actually a false value, a note to self, the false value only needs to be false for post and doesn't indicate the value we start from the beginning
+                train_data.append([[float(result_element) for result_element in result[3]], [-1000. for i in env]])
+                train_labels.append([2.])
+            #if result[3][0] >= 0: # the 
+                # then false
+            #    train_data.append([[float(result_element) for result_element in result[3]], [-1000. for i in env]])
+            #    train_labels.append([2.])
+            #else: # then the datapoint needs to be true, actually
+            #    train_data.append([[-1000. for i in env], [float(result_element) for result_element in result[3]]])
+            #    train_labels.append([1.])
+    while verification_iter < 500:
+        if wait:
+            time.sleep(2)
+        # Initialize program graph
+        if cmd_args.resume_graph is None:
+            program_graph = ProgramGraph(DSL_DICT, input_type, output_type, input_size, output_size,
+                                        cmd_args.max_num_units, cmd_args.min_num_units, max_depth,
+                                        device, ite_beta = cmd_args.ite_beta, cfg = None, var_ids = None, root_symbol = None)
+            start_depth = 0
+        else:
+            assert os.path.isfile(cmd_args.resume_graph)
+            program_graph = pickle.load(open(cmd_args.resume_graph, "rb"))
+            program_graph.max_depth = max_depth
+            start_depth = program_graph.get_current_depth()
+            # start_depth = 3
+
+        # Initialize algorithm
+        algorithm = NAS(frontier_capacity=cmd_args.frontier_capacity)
+        iteri = 0
+        partition_num = 0
+        all_graphs = [[0, program_graph]]
+        print("Length of training data is ", len(train_data), " TRAINING DATA IS !!!!", train_data)
+        while(True):
+            _, program_graph = heapq.heappop(all_graphs)
+            search_loader = IOExampleLoader(train_data, train_labels, batch_size=batch_size, shuffle=False)
+            batched_trainset = search_loader.get_batch_trainset()
+            batched_validset = search_loader.get_batch_validset()
+
+            # for program train
+            train_loader = IOExampleLoader(train_data, train_labels, batch_size=batch_size, shuffle=False)
+            batched_prog_trainset = train_loader.get_batch_trainset()
+            prog_validset = train_loader.get_batch_validset()
+            testset = train_loader.testset
+
+            log_and_print('data for architecture search')
+            log_and_print('batch num of train: {}'.format(len(batched_prog_trainset)))
+            log_and_print('batch num of valid: {}'.format(len(prog_validset)))
+            log_and_print('total num of test: {}'.format(len(testset)))
+
+            # Run program learning algorithm
+            best_graph, program_graph = algorithm.run_specific(program_graph,\
+                                        search_loader, train_loader,
+                                        train_config, device, start_depth=start_depth, warmup=False, cegis=(iteri>0), sem=cmd_args.sem)
+
+
+            best_program = best_graph.extract_program()
+            program_graph.show_graph()
+            # print program
+            log_and_print("Best Program Found:")
+            program_str = print_program(best_program)
+            log_and_print(program_str)
+
+            # Save best program
+            pickle.dump(best_graph, open(os.path.join(save_path, "graph.p"), "wb"))
+            # Finetune
+            if (not Testing) and cmd_args.finetune_epoch is not None:
+                train_config = {
+                    'train_lr' : cmd_args.finetune_lr,
+                    'search_epoches' : cmd_args.neural_epochs,
+                    'finetune_epoches' : cmd_args.finetune_epoch, # changed from cmd_args.finetune_epochs as this could not be found
+                    'model_optim' : optim.Adam,
+                    'lossfxn' : lossfxn,
+                    'evalfxn' : label_correctness,
+                    'num_labels' : num_labels,
+                    'save_path' : save_path,
+                    'topN' : cmd_args.topN_select,
+                    'arch_weight_decay' : 0,
+                    'model_weight_decay' : 0,
+                    'secorder' : cmd_args.sec_order
+                }
+                log_and_print('Finetune')
+                # start time
+                start = time.time()
+                best_graph = algorithm.train_graph_model(best_graph, train_loader, train_config, device, lr_decay=1.0)
+                # calculate time
+                total_spend = time.time() - start
+                log_and_print('finetune time spend: {} \n'.format(total_spend))
+                # store
+                pickle.dump(best_graph, open(os.path.join(save_path, "finetune_graph.p"), "wb"))
+
+                # debug
+                testset = train_loader.testset
+                best_program = best_graph.extract_program()
+
+            best_program = best_program.submodules["program"]
+            if True:
+                print_program2(best_program, env)
+                print(" and the smoothed version of the program is ")
+                print_program2(best_program, env, True)
+                def lambda_program_generator(program, Smoothed = False):
+                    if program.name == "affine":
+                        if Smoothed:
+                            vals = smoothed_numerical_invariant(program.parameters)
+                            #print("Affine smoothed weights are ", vals)
+                            return lambda *args: sum(val*arg for val,arg in zip(vals, args)) + vals[-1] >= 0 # I think if vals is too long, the zip will ignore it (I checked indeed it does)
+                        else:
+                            new_weights = [float(x.detach()) for x in program.parameters["weights"][0]] + [float(program.parameters["bias"][0].detach())]
+                            return lambda *args: sum(val*arg for val,arg in zip(new_weights, args)) + new_weights[-1] >= 0
+                    elif program.name == "equality":
+                        if Smoothed:
+                            vals = smoothed_numerical_invariant(program.parameters)
+                            #print("Equality smoothed weights are ", vals)
+                            return lambda *args: sum(val*arg for val,arg in zip(vals, args)) + vals[-1] == 0
+                        else:
+                            new_weights = [float(x.detach()) for x in program.parameters["weights"][0]] + [float(program.parameters["bias"][0].detach())]
+                            return lambda *args: sum(val*arg for val,arg in zip(new_weights, args)) + new_weights[-1] == 0
+                    elif program.name == "and": #and
+                        return lambda *args : (lambda_program_generator(list(program.submodules.items())[0][1], Smoothed)(*args) and lambda_program_generator(list(program.submodules.items())[1][1], Smoothed)(*args))
+                    else: # or
+                        return lambda *args : (lambda_program_generator(list(program.submodules.items())[0][1], Smoothed)(*args) or lambda_program_generator(list(program.submodules.items())[1][1], Smoothed)(*args))
+                
+                func = lambda_program_generator(best_program, False)
+                func_smoothed = lambda_program_generator(best_program, True)
+                print(func)
+                print(func_smoothed)
+                Missed = []
+                for datum in zip(train_data,train_labels): # this is for checking that the output function actually works before smoothing
+                    if datum[1][0] == 2.0: # false
+                        if func(*(datum[0][0])):
+                            Missed.append(list(datum[0]))
+                    elif datum[1][0] == 1.0: # true
+                        if not func(*(datum[0][1])):
+                            Missed.append(list(datum[0]))
+                    elif datum[1][0] == 3.0: #implication_example
+                        if not ((not func(*(datum[0][0]))) or (func(*(datum[0][1])))):
+                            Missed.append(list(datum[0])) 
+                Missed_Smooth = []
+                for datum in zip(train_data,train_labels):  # form: ([[x,y],[w,z]], [label])
+                    #print("Datum is ", datum, " and function smoothed value is ", func_smoothed(*datum[0][int(2-datum[1][0])]))
+                    if datum[1][0] == 2.0: # false
+                        if func_smoothed(*(datum[0][0])):
+                            Missed_Smooth.append(list(datum[0]))
+                    elif datum[1][0] == 1.0:
+                        if not func_smoothed(*(datum[0][1])):
+                            Missed_Smooth.append(list(datum[0]))
+                    elif datum[1][0] == 3.0:
+                        if not ((not func_smoothed(*(datum[0][0]))) or (func_smoothed(*(datum[0][1])))):
+                            Missed_Smooth.append(list(datum[0])) 
+                print("Length of training data is ", len(train_data), " TRAINING DATA IS !!!!", train_data)
+                print("Number missed w/o smooth is ", len(Missed), " with missed examples", Missed)
+                print("Number missed w/ smooth is ", len(Missed_Smooth) , " with missed examples ", Missed_Smooth)
+                if wait:
+                    time.sleep(3) #TODO: for viewing
+            if len(Missed_Smooth) == 0:
+                log_and_print("Found a solution!!!!!:")
+                print_program2(best_program, env, smoothed = True)
+                break
+            else:
+                if len(Missed) == 0 and len(Missed_Smooth) > 0:
+                    pass
+                    #assert False # smoothing ruins it!
+                print("Missed smooth examples are", Missed_Smooth)
+                train_loader = IOExampleLoader(train_data, train_labels, batch_size=batch_size, shuffle=False)
+                for pair in all_graphs:
+                    pair[0] = evaluate(algorithm, pair[1], train_loader, train_config, device)
+                splited_subgraph = program_graph.partition(cmd_args.top_left, cmd_args.GM)
+                partition_num += 1
+                if splited_subgraph is not None:
+                    for subgraph in splited_subgraph:
+                        all_graphs.append([evaluate(algorithm, subgraph, train_loader, train_config, device), subgraph])
+                heapq.heapify(all_graphs)
+            iteri += 1
+            print("Length of training data is ", len(train_data), " TRAINING DATA IS !!!!", train_data)
+
+            print("number of partitions: ", partition_num)
+        #print("Beginning to check invariant")
+        inv_smt = invariant_from_program(best_program, env)
+        print("Invaraint smt is ", inv_smt)
+        result = invariantChecker.check_cln([inv_smt], env)
+        print("The result was", result)
+        if wait:
+            time.sleep(5)
+        if result[0]:
+            print(result[1]) # this is the invariant string
+            return "Solved!", result[1], verification_iter
+        elif result[2] == "loop": # we have an implication example, just add it into the training data
+            train_data.append(result[3])
+            train_labels.append([3.])
+        else:
+            # I have a sat example from pre or post, but I don't know which category it falls into, so I check its output from the generated function and add it to the opposite label
+            #output = func_smoothed(result[3][0],result[3][1])
+            output = func_smoothed(*result[3])
+            if output: # then we actually need this datapoint to be false
+                train_data.append([[float(result_element) for result_element in result[3]], [-1000. for i in env]])
+                train_labels.append([2.])
+            else: # then the datapoint needs to be true, actually
+                train_data.append([[-1000. for i in env],[float(result_element) for result_element in result[3]]])
+                train_labels.append([1.])
+        verification_iter+=1
+    return "Did not solve", "", verification_iter
+
+
 if __name__ == '__main__':
+    cmd_args = parse_args()
+    num_epochs = 30
+    max_depth = 2
+    batch_size = 3
+    lr = 0.03
+    #regularization ratio tuned inside nas.py
+    problem_num = cmd_args.problem_num
+    if problem_num != 0:
+        #try:
+        solved, inv_string, num_iter = run_on_problem(problem_num, cmd_args, num_epochs, max_depth, batch_size, lr)
+        print(solved)
+        print(inv_string)
+        print(num_iter)
+        #except:
+        #    print("An exception occurred")
+    else:
+        num_solved = 0
+        solved_probs = []
+        for p_num in range(1, 134): # all code2inv programs
+            if not (p_num in [2, 7, 8, 9, 10, 11, 12, 13, 14, 25, 30, 35, 37, 38, 39, 40, 41, 42, 43, 44, 45, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 60, 71, 73, 74, 76, 78, 79, 81, 82, 87, 88, 89, 90, 91, 92, 99, 114, 115, 116, 117, 124, 132, 133]):
+                print("Have solved ", num_solved, " / ", p_num - 1)
+                print("Now running on problem number ", p_num)
+                #time.sleep(1)
+                try:
+                    solved, inv_string, num_iter = run_on_problem(p_num, cmd_args, num_epochs, max_depth, batch_size, lr)
+                    print(solved)
+                    print(inv_string)
+                    print(num_iter)
+                    if solved == "Solved!":
+                        num_solved+=1
+                        solved_probs.append(p_num)
+                except:
+                    print("An error occurred")
+                    #time.sleep(5)
+            else:
+                solved_probs.append(p_num)
+                num_solved+=1
+        print(solved_probs)
+        print(num_solved)
+
+
+
+if False: #if __name__ == '__main__':
     cmd_args = parse_args()
     # added stuff for cln2inv
     problem_num = cmd_args.problem_num
@@ -474,7 +828,7 @@ if __name__ == '__main__':
     if device != 'cpu':
         lossfxn = lossfxn.cuda()
 
-    max_depth = 3 #This is a tweakable parameter. The higher the depth, the longer the search.
+    max_depth = 2 #This is a tweakable parameter. The higher the depth, the longer the search.
     input_size = len(env) 
     output_size = 1
     num_labels = 1
@@ -527,7 +881,7 @@ if __name__ == '__main__':
     # testing functions here:
     # train_data must be sorted by var_ids
     if False: # just so I can close all these, may need them for testing later
-        pass
+        pass 
         #train_data, train_labels = [[[-1000., 1000.], [1,0]]], [[1]]
         #expr = (lambda x,y : ((x - 4*y - 3> 0) and (2*x - y - 3 > 0)) or (((-1)*x + y - 1 > 0) and (x + 2*y + 2 > 0)))
         #expr = (lambda x, y : ((-2)*x - 2*y + 4 > 0) and ((-4)*x + 3*y +1> 0)) #((-4)*x - 2*y + 4 > 0) and ((-4)*x + 3*y +1> 0):
@@ -566,6 +920,7 @@ if __name__ == '__main__':
     train_data = []
     train_labels = []
     # assuming env has already been found
+    print("Environment is ", env)
     non_loop_invariant = 1.0 * z3.Real(env[0]) >= 0.0 # a non-loop invariant (presumably). this is to get the first data point, note cln2inv warm starts with data from a spreadsheet, I think
     result = invariantChecker.check_cln([non_loop_invariant], env)
     if result[0]:
