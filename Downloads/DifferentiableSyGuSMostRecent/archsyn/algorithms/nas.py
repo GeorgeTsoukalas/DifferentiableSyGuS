@@ -18,7 +18,8 @@ import os
 import time 
 
 class NAS(ProgramLearningAlgorithm):
-
+    regularization = False
+    rat = 0.1
     def __init__(self, frontier_capacity=float('inf')):
         self.frontier_capacity = frontier_capacity
 
@@ -83,21 +84,30 @@ class NAS(ProgramLearningAlgorithm):
 
                 # L1 regularization for bringing down coefficients which are unnecessary
                 # Note: As implemented here, I think the bias term may be seperately regulated, which is probably better
-                l1_regularization = torch.tensor(0.0)
+                
+                l1_regularization = 0.
+                l2_regularization = 0.
+                ctr = 0
                 for param in model_params_list:
-                    print("Param is ", param)
-                    print(torch.norm(param, 1)**2)
+                    #print("Param is ", param)
+                    #    print(torch.norm(param, 1)**2)
                     l1_regularization += torch.norm(param, 1)**2
-                print(l1_regularization)
+                    if ctr == 0:
+                        l2_regularization += (torch.norm(param, 2)**2 - 1) # bias term comes after an eq term, so swap between
+                        ctr = 1
+                    else:
+                        ctr = 0
 
 
 
                 #assert False
                 # backprop
-                ratio = 0.5
-                print("Predicted value loss is ", lossfxn(train_predicted, true_vals))
-                loss = ratio * lossfxn(train_predicted, true_vals) + l1_regularization
-                #loss = ratio * lossfxn(train_predicted, true_vals)
+                #print("Predicted value loss is ", lossfxn(train_predicted, true_vals))
+                loss = lossfxn(train_predicted, true_vals)
+                if self.regularization:
+                    loss = lossfxn(train_predicted, true_vals) + self.rat * l2_regularization
+                else:
+                    loss = lossfxn(train_predicted, true_vals)
                 if model_optim is not None:
                     model_optim.zero_grad()
                 loss.backward()
@@ -303,7 +313,7 @@ class NAS(ProgramLearningAlgorithm):
         else:
             return True
 
-
+    
     # forward and backward with None check
     def forward_backward_check(self, graph, lossfxn, optim, batch_data, label_data, output_type, output_size, device, \
                                 clear_temp=True, cur_arch_train=False, clip=False, clip_params=None, manual_loss=None, optim_options=None, ratio=None):
@@ -317,7 +327,25 @@ class NAS(ProgramLearningAlgorithm):
         #assert False # TODO: remove
         #print (f'forward_backward_check:predicted_data: {predicted_data}')
         #print (f'forward_backward_check:label_data: {label_data}')
-        loss = lossfxn(predicted_data, label_data)
+        l1_regularization = 0.
+        l2_regularization = 0.
+        ctr = 0
+        for param in clip_params:
+            #print("Param is ", param)
+            #    print(torch.norm(param, 1)**2)
+            l1_regularization += torch.norm(param, 1)**2
+            if ctr == 0:
+                l2_regularization += (torch.norm(param, 2)**2 - 1) # bias term comes after an eq term, so swap between
+                ctr = 1
+            else:
+                ctr = 0
+        if self.regularization:
+            loss =lossfxn(predicted_data, label_data) + self.rat * l2_regularization
+        else:
+            loss = lossfxn(predicted_data, label_data)
+
+
+
         #print("Loss is " + str(loss))
         #assert False
         #print (f'loss done ---------------------------------------------')
@@ -325,14 +353,13 @@ class NAS(ProgramLearningAlgorithm):
         # debug
         if ratio is not None:
             loss = loss * ratio
-            l1_regularization = torch.tensor(0.0) #added recently 
-            print("Indeed ratio is not none")
+            #l1_regularization = torch.tensor(0.0) #added recently 
+            #print("Indeed ratio is not none")
             for param in model_params_list:
-                print("Param is ", param)
-                print(torch.norm(param, 1)**2)
+            #    print("Param is ", param)
+            #    print(torch.norm(param, 1)**2)
                 l1_regularization += torch.norm(param, 1)**2
-            print(l1_regularization)
-            loss += l1_regularization
+            #print(l1_regularization)
         if manual_loss is not None:
             loss += manual_loss
 
@@ -560,12 +587,16 @@ class NAS(ProgramLearningAlgorithm):
         test_input, test_output = map(list, zip(*test_set))
         test_true_vals = torch.tensor(flatten_batch(test_output)).float().to(device)
         test_true_vals = test_true_vals.long()
+        #print("I/O are ", test_input, test_output)
         # evaluation
         with torch.no_grad():
             # pass through graph
             test_predicted = graph.execute_graph(test_input, output_type, output_size, device)
-            metric, additional_params = eval_fun(test_predicted, test_true_vals, num_labels=num_labels)
-
+            #print("test predicted are ", test_predicted)
+            if test_predicted != []:
+                metric, additional_params = eval_fun(test_predicted, test_true_vals, num_labels=num_labels)
+            else:
+                metric = 100. # somethign high, let's see if this works
         #print (f'test_predicted: {test_predicted}') TODO: commented out on 11/21
         #print (f'test_true_vals: {test_true_vals}')
 
