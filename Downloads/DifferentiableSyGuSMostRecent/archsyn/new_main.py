@@ -8,6 +8,7 @@ import torch
 import pandas as pd
 import random
 import torch.optim as optim
+import itertools
 from itertools import chain
 from tqdm import tqdm
 import z3
@@ -24,7 +25,9 @@ from algorithms import NAS
 from program_graph import ProgramGraph
 from utils.data_loader import CustomLoader, IOExampleLoader
 from utils.evaluation import label_correctness, value_correctness
-from utils.logging import init_logging, log_and_print, print_program, print_program2, lcm, numericalInvariant_to_str, smoothed_numerical_invariant
+
+from utils.logging import init_logging, log_and_print, print_program, print_program2, lcm, numericalInvariant_to_str, smoothed_numerical_invariant, smoothed_numerical_invariant_new, invariant_from_program_new
+from utils.logging import smoothed_numerical_invariant_cln2inv, smoothed_numerical_invariant_third, smoothed_numerical_invariant_fourth, smoothed_numerical_invariant_new_nuclear
 from utils.logging import invariant_from_program
 from utils.loss import SoftF1LossWithLogits
 from dsl_inv import DSL_DICT, CUSTOM_EDGE_COSTS
@@ -251,8 +254,8 @@ variable_dictionary = {
     89: ["lock", "x", "y"],# ["lock", "x", "y", "v1", "v2", "v3"],
     88: ["lock", "x", "y"],
     87: ["lock", "x", "y"],
-    86: ["x", "y", "z1", "z2", "z3"], # for some reason it runs here, but shouodn't
-    85: ["x", "y", "z1", "z2", "z3"], # for some reason it runs here, but shouldn't
+    86: ["x", "y"], #"z1", "z2", "z3"], # for some reason it runs here, but shouodn't
+    85: ["x", "y"],#, "z1", "z2", "z3"], # for some reason it runs here, but shouldn't
     84: ["x", "y"],
     83: ["x", "y"],
     82: ["i", "x", "y"],#["i", "x", "y", "z1", "z2", "z3"],
@@ -270,7 +273,7 @@ variable_dictionary = {
     71: ["c", "y", "z"],
     70: ["x", "y"],
     7:  ["x", "y"],
-    69: ["n", "v1", "v2", "v3", "x", "y"],
+    69: ["n", "x", "y"], #["n", "v1", "v2", "v3", "x", "y"],
     68: ["n", "y", "x"],
     67: ["n", "y", "x"],
     66: ["x", "y"],
@@ -379,7 +382,7 @@ def evaluate(algorithm, graph, train_loader, train_config, device):
         metric = algorithm.eval_graph(graph, validset, train_config['evalfxn'], train_config['num_labels'], device)
     return metric
 
-def run_on_problem(problem_num, cmd_args, num_epochs, max_depth, batch_size, lr):
+def run_on_problem(problem_num, cmd_args, num_epochs, max_depth, batch_size, lr, i, pre_cooked_data, random_seeding = True):
     # added stuff for cln2inv
     fname = str(problem_num) + '.c'
     csvname = str(problem_num) + '.csv'
@@ -392,11 +395,13 @@ def run_on_problem(problem_num, cmd_args, num_epochs, max_depth, batch_size, lr)
 
     invariantChecker = InvariantChecker(fname, check_path)
     # manual seed all random for debug
-    log_and_print('random seed {}'.format(cmd_args.random_seed))
-    torch.random.manual_seed(cmd_args.random_seed)
-    #torch.manual_seed(cmd_args.seed)
-    np.random.seed(cmd_args.random_seed)
-    random.seed(cmd_args.random_seed)
+    if random_seeding:
+        log_and_print('random seed {}'.format(cmd_args.random_seed))
+        torch.random.manual_seed(cmd_args.random_seed)
+        #torch.manual_seed(cmd_args.seed)
+        np.random.seed(cmd_args.random_seed)
+        random.seed(cmd_args.random_seed)
+
     wait = False
 
     full_exp_name = 'Test'
@@ -470,8 +475,11 @@ def run_on_problem(problem_num, cmd_args, num_epochs, max_depth, batch_size, lr)
     # Initialize algorithm
     algorithm = NAS(frontier_capacity=cmd_args.frontier_capacity)
     verification_iter = 0
-    train_data = []
-    train_labels = []
+    if pre_cooked_data:
+        train_data, train_labels = load_spreadsheet_data_test(problem_num, env)
+    else:
+        train_data = []
+        train_labels = []
     # assuming env has already been found
     print("Environment is ", env)
     non_loop_invariant = 1.0 * z3.Real(env[0]) >= 0.0 # a non-loop invariant (presumably). this is to get the first data point, note cln2inv warm starts with data from a spreadsheet, I think
@@ -512,7 +520,6 @@ def run_on_problem(problem_num, cmd_args, num_epochs, max_depth, batch_size, lr)
             program_graph = pickle.load(open(cmd_args.resume_graph, "rb"))
             program_graph.max_depth = max_depth
             start_depth = program_graph.get_current_depth()
-            # start_depth = 3
 
         # Initialize algorithm
         algorithm = NAS(frontier_capacity=cmd_args.frontier_capacity)
@@ -520,6 +527,7 @@ def run_on_problem(problem_num, cmd_args, num_epochs, max_depth, batch_size, lr)
         partition_num = 0
         all_graphs = [[0, program_graph]]
         print("Length of training data is ", len(train_data), " TRAINING DATA IS !!!!", train_data)
+        working_params = []
         while(True):
             _, program_graph = heapq.heappop(all_graphs)
             search_loader = IOExampleLoader(train_data, train_labels, batch_size=batch_size, shuffle=False)
@@ -583,10 +591,166 @@ def run_on_problem(problem_num, cmd_args, num_epochs, max_depth, batch_size, lr)
                 best_program = best_graph.extract_program()
 
             best_program = best_program.submodules["program"]
-            if True:
-                print_program2(best_program, env)
-                print(" and the smoothed version of the program is ")
-                print_program2(best_program, env, True)
+            
+            print_program2(best_program, env)
+            #print(" and the smoothed version of the program is ")
+            #print_program2(best_program, env, True) 
+            def get_all_params(program, Smoothed = False):
+                params = []
+                if program.name == "affine":
+                    if Smoothed:
+                        if i == 1:
+                            vals = smoothed_numerical_invariant_new(program.parameters)
+                        elif i == 2:
+                            vals = smoothed_numerical_invariant_cln2inv(program.parameters)
+                        elif i == 3:
+                            vals = smoothed_numerical_invariant_third(program.parameters)
+                        elif i == 4:
+                            vals = smoothed_numerical_invariant_fourth(program.parameters)
+                        elif i == 5:
+                            vals = smoothed_numerical_invariant_new_nuclear(program.parameters)
+                        #print(vals)
+                        params.append(vals)
+                    else:
+                        vals = [float(x.detach()) for x in program.parameters["weights"][0]] + [float(program.parameters["bias"][0].detach())]
+                        params.append([vals])
+                elif program.name == "equality":
+                    if Smoothed:
+                        if i == 1:
+                            vals = smoothed_numerical_invariant_new(program.parameters)
+                        elif i == 2:
+                            vals = smoothed_numerical_invariant_cln2inv(program.parameters)
+                        elif i == 3:
+                            vals = smoothed_numerical_invariant_third(program.parameters)
+                        elif i == 4:
+                            vals = smoothed_numerical_invariant_fourth(program.parameters)
+                        elif i == 5:
+                            vals = smoothed_numerical_invariant_new_nuclear(program.parameters)
+                        params.append(vals)
+                    else:
+                        vals = [float(x.detach()) for x in program.parameters["weights"][0]] + [float(program.parameters["bias"][0].detach())]
+                        params.append([vals])
+                elif program.name == "and":
+                    params += get_all_params(list(program.submodules.items())[0][1], Smoothed)
+                    params += get_all_params(list(program.submodules.items())[1][1], Smoothed)
+                    #params.append(*get_all_params(list(program.submodules.items())[0][1], Smoothed))
+                    #params.append(*get_all_params(list(program.submodules.items())[1][1], Smoothed))
+                elif program.name == "or":
+                    params += get_all_params(list(program.submodules.items())[0][1], Smoothed)
+                    params += get_all_params(list(program.submodules.items())[1][1], Smoothed)
+                    #params.append(*get_all_params(list(program.submodules.items())[0][1], Smoothed))
+                    #params.append(*get_all_params(list(program.submodules.items())[1][1], Smoothed))
+                return params
+            
+            smoothed_params = get_all_params(best_program, Smoothed = True)
+            print("All gottens smoothed params are ", smoothed_params)
+        
+            # Ah, but now I've forgotten the structure!
+            # First let me take the cartesian product
+            # TODO: make sure there's no problem with depth 3 invaraints and too much nesting!
+            all_smoothed_param_choices = itertools.product(*smoothed_params) # this is an iterator - don't call list on it or it will be used up!
+            print("Now moving to nonsmoothed")
+            nonsmoothed_params = get_all_params(best_program)
+            all_nonsmoothed_param_choices = itertools.product(*nonsmoothed_params)
+            print(nonsmoothed_params)
+            # Want to check the nonsmoothed one first
+            def lambda_program_generator_new(program, params):
+                if program.name == "affine":
+                    copy_of_params = [x for x in params[0]]
+                    func = lambda *args: sum(val * arg for val, arg in zip(copy_of_params, args)) + copy_of_params[-1] >= 0 # There is a pointer issue here - the values are not copied in memory so I made a new array with the same values
+                    params.pop(0)
+                    return func
+                elif program.name == "equality":
+                    #print("Its equality : ", params)
+                    copy_of_params = [x for x in params[0]] # reference issue!
+                    func = lambda *args: sum(val * arg for val, arg in zip(copy_of_params, args)) + copy_of_params[-1] == 0
+                    params.pop(0)
+                    return func
+                elif program.name == "and":
+                    #print("it is an and")
+                    #print("And 0 : ", params)
+                    func1 = (lambda_program_generator_new(list(program.submodules.items())[0][1], params)) 
+                    #print("And 1 : ", params)
+                    func2 = (lambda_program_generator_new(list(program.submodules.items())[1][1], params)) # Two: Does params get updated here?)
+                    #print("And 2 : ", params)
+                    return lambda *args  : func1(*args) and func2(*args)
+                elif program.name == "or":
+                    func1 = (lambda_program_generator_new(list(program.submodules.items())[0][1], params)) 
+                    func2 = (lambda_program_generator_new(list(program.submodules.items())[1][1], params)) # Two: Does params get updated here?
+                    return lambda *args  : func1(*args) or func2(*args)
+            def function_accuracy(func, data, labels):
+                Missed = []
+                for datum in zip(data,labels): # this is for checking that the output function actually works before smoothing
+                    if datum[1][0] == 2.0: # false
+                        if func(*(datum[0][0])):
+                            Missed.append(list(datum[0]))
+                    elif datum[1][0] == 1.0: # true
+                        if not func(*(datum[0][1])):
+                            Missed.append(list(datum[0]))
+                    elif datum[1][0] == 3.0: #implication_example
+                        if not ((not func(*(datum[0][0]))) or (func(*(datum[0][1])))):
+                            Missed.append(list(datum[0])) 
+                return Missed
+            is_non_smoothed_correct = False
+            for param_choice in all_nonsmoothed_param_choices: # there is just one, but to keep with format
+                print("*** NONSMOOTHED CASE ***")
+                copied_list_param_choice = [x for x in list(param_choice)] # memory issue ? TODO:
+                print(copied_list_param_choice)
+                func = lambda_program_generator_new(best_program, list(copied_list_param_choice)) # might be a failure spot
+                Missed = function_accuracy(func, train_data, train_labels)
+                print(len(Missed), " out of ", len(train_data), "examples missed")
+                print("The missed are ", Missed, " and the training data is ", train_data)
+                if len(Missed) == 0:
+                    is_non_smoothed_correct = True
+            working_params = [] # if empty, none work!
+            print("*** SMOOTHED CASE ATTEMPTS ***")            
+            for param_choice in all_smoothed_param_choices:
+                # If I build the program in the exact same way I got the parameter order, the structure should be preserved.
+                print("## The parameters in this choice are ", list(param_choice)) # in general, probably better to print the program structure
+                list_param_choice = list(param_choice) # itertools returns a tuple (immutable)
+                copied_list_param_choice = [x for x in list_param_choice] # again another memory issue
+                func = lambda_program_generator_new(best_program, list_param_choice)
+                Missed_Smooth = function_accuracy(func, train_data, train_labels)
+                print(len(Missed_Smooth), " out of ", len(train_data), "examples missed")
+                #print("The missed are ", Missed_Smooth, " and the training data is ", train_data)
+                if len(Missed_Smooth) == 0:
+                    print("This is a solution!")
+                    working_params = copied_list_param_choice
+                    #print(working_params)
+                    #print(list_param_choice)
+                    break
+            #print(working_params)
+            if (working_params != []):
+                print("it's breaking out!")
+                break
+            else:
+                print("!!!! No solution was found here, moving to the next structure !!!!")
+                if is_non_smoothed_correct: # nonsmoothed version worked but none of the smooth did
+                    assert False # something is wrong with the smoothing
+                train_loader = IOExampleLoader(train_data, train_labels, batch_size=batch_size, shuffle=False)
+                #print("all_graphs are ", all_graphs)
+                for pair in all_graphs:
+                    #print("Iterating through pairs in all graphs")
+                    pair[0] = evaluate(algorithm, pair[1], train_loader, train_config, device)
+                splited_subgraph = program_graph.partition(cmd_args.top_left, cmd_args.GM)
+                partition_num += 1
+                if splited_subgraph is not None:
+                  #  for subgraph in splited_subgraph:
+                   #     print("Subgraph is ", subgraph)
+                   # assert False
+                    for subgraph in splited_subgraph:
+                        metric = evaluate(algorithm, subgraph, train_loader, train_config, device)
+                        if metric < 90: # to get around a weird error, from program_graph line ~360
+                            # What I think was happening there was that right before the attempt fails, upon expanding all possible 
+                            # invariant structures, it tries to run just the invariant structure "StartFunction", which has no meaningful
+                            # Returned result, learning to an empty intermediate result return, which canno bt  concatenated
+                            all_graphs.append([metric, subgraph])
+                heapq.heapify(all_graphs)
+            iteri += 1
+            print("Length of training data is ", len(train_data), " TRAINING DATA IS !!!!", train_data)
+            print("number of partitions: ", partition_num)
+
+            if False: # Deprecated
                 def lambda_program_generator(program, Smoothed = False):
                     if program.name == "affine":
                         if Smoothed:
@@ -641,11 +805,11 @@ def run_on_problem(problem_num, cmd_args, num_epochs, max_depth, batch_size, lr)
                 print("Number missed w/ smooth is ", len(Missed_Smooth) , " with missed examples ", Missed_Smooth)
                 if wait:
                     time.sleep(3) #TODO: for viewing
-            if len(Missed_Smooth) == 0:
-                log_and_print("Found a solution!!!!!:")
-                print_program2(best_program, env, smoothed = True)
-                break
-            else:
+                if len(Missed_Smooth) == 0:
+                    log_and_print("Found a solution!!!!!:")
+                    print_program2(best_program, env, smoothed = True)
+                    break
+            elif False: # Moved
                 if len(Missed) == 0 and len(Missed_Smooth) > 0:
                     pass
                     #assert False # smoothing ruins it!
@@ -659,15 +823,15 @@ def run_on_problem(problem_num, cmd_args, num_epochs, max_depth, batch_size, lr)
                     for subgraph in splited_subgraph:
                         all_graphs.append([evaluate(algorithm, subgraph, train_loader, train_config, device), subgraph])
                 heapq.heapify(all_graphs)
-            iteri += 1
-            print("Length of training data is ", len(train_data), " TRAINING DATA IS !!!!", train_data)
-
-            print("number of partitions: ", partition_num)
         #print("Beginning to check invariant")
-        inv_smt = invariant_from_program(best_program, env)
+        working_params_copy = [x for x in working_params]
+        print("The working params copy is ", working_params_copy)
+        func_smoothed = lambda_program_generator_new(best_program, working_params_copy) # so many referencing issues
+        inv_smt = invariant_from_program_new(best_program, working_params, env)
         print("Invaraint smt is ", inv_smt)
         result = invariantChecker.check_cln([inv_smt], env)
         print("The result was", result)
+        print("Working parameters are ", working_params)
         if wait:
             time.sleep(5)
         if result[0]:
@@ -679,57 +843,146 @@ def run_on_problem(problem_num, cmd_args, num_epochs, max_depth, batch_size, lr)
         else:
             # I have a sat example from pre or post, but I don't know which category it falls into, so I check its output from the generated function and add it to the opposite label
             #output = func_smoothed(result[3][0],result[3][1])
+            print("Now we are checking which part of the training data we must add this to")
+            print("The datapoint we are going to check this on is ", result[3])
             output = func_smoothed(*result[3])
+            print("The output of the function is ", output)
             if output: # then we actually need this datapoint to be false
                 train_data.append([[float(result_element) for result_element in result[3]], [-1000. for i in env]])
                 train_labels.append([2.])
             else: # then the datapoint needs to be true, actually
                 train_data.append([[-1000. for i in env],[float(result_element) for result_element in result[3]]])
                 train_labels.append([1.])
+        # In case there is a problem with this:
+        #data_dups = False
+        #for datum in train_data:
+
+        
         verification_iter+=1
     return "Did not solve", "", verification_iter
 
 
+def load_trace(csv_name): # unclear if we want to drop init, final columns are this is important for me to distinguish things
+    df = pd.read_csv(csv_name)
+    #df_data = df.drop(columns=['init', 'final'])
+    df['1'] = 1
+    return df
+
+def load_spreadsheet_data_test(problem_num, env): # While I am not 100% sure, I believe 
+    csv_name = str(problem_num) + '.csv'
+    trace_path = 'benchmarks-cln2inv/code2inv/csv/'
+    data = load_trace(trace_path + csv_name)
+
+    training_data = []
+    train_labels = []
+    for index, row in data.iterrows():
+        if row['init'] == 0 and row['final'] == 0: # this is an implication example
+            next_row = data.iloc[index+1] # should exist
+            training_data.append([[row[var] for var in env], [next_row[var] for var in env]])
+            train_labels.append([3.])
+        if row['init'] == 0 and row['final'] == 1: # post example, I believe it is also true
+            training_data.append([[-1000. for var in env], [row[var] for var in env]])
+            train_labels.append([1.])
+        if row['init'] == 1 and row['init'] == 0: # pre example, I believe it is also true
+            training_data.append([[-1000. for var in env], [row[var] for var in env]])
+            train_labels.append([1.])
+    #print("Training data length is ", len(training_data), "and the data is ", training_data)
+    #assert False
+    return training_data, train_labels
+
 if __name__ == '__main__':
     cmd_args = parse_args()
-    num_epochs = 30
+    num_epochs = 20 
     max_depth = 2
-    batch_size = 3
-    lr = 0.03
-    #regularization ratio tuned inside nas.py
+    batch_size = 4
+    lr = 0.045
+    random_seeding = False # False for no random seed 
+    pre_cooked_data = False # testing to see what 
     problem_num = cmd_args.problem_num
-    if problem_num != 0:
+    #env = variable_dictionary[problem_num]
+    # Testing
+    #x,y = load_spreadsheet_data_test(9, env)
+    invariant_dict = {}
+    if pre_cooked_data: # this is for testing the pregenerated spreadsheet data from cln2inv, where additionally we can add new CEs in the process, all we do is change the starting data from none to this.
+        time1 = time.time()
+        solved_probs = []
+        unsolved_probs = {} # here I insert the error messages
+        for p_num in range(1,134):
+            unsolved_probs[p_num] = []
+        for p_num in [1, 100, 101, 106, 108, 11, 110, 111, 112, 113, 118, 119, 12, 120, 121, 122, 123, 124, 125, 126, 127, 128, 13, 14, 16, 18, 2, 20, 21, 22, 23, 24, 25, 26, 27, 30, 31, 32, 35, 36, 4, 44, 48, 51, 61, 62, 63, 7, 70, 72, 75, 77, 79, 8, 88, 9, 93, 94]: # these 58 are the ones which there is actually spreadsheet data for
+            try:
+                solved, inv_string, num_iter = run_on_problem(p_num, cmd_args, num_epochs, max_depth, batch_size, lr, 1, pre_cooked_data, random_seeding) # set to 1, the leastnuclear option here
+                print(solved)
+                print(inv_string)
+                print(num_iter)
+                if solved == "Solved!":
+                    num_solved+=1
+                    solved_probs.append(p_num)
+                    invariant_dict[p_num] = inv_string
+                    break
+            except Exception as e:
+                print("An error occurred: ", str(e)) # an empty message means smoothing error
+                unsolved_probs[p_num] += [str(e)]
+                print(solved_probs)
+        print(num_solved)
+        print(invariant_dict)
+        print("unsolved probs are ", unsolved_probs)
+        time2 = time.time()
+        print("Running on all programs took ", time2 - time1, " seconds") 
+    elif problem_num != 0: # 0 is the default problem number, meant to indicate to run on all problems
         #try:
-        solved, inv_string, num_iter = run_on_problem(problem_num, cmd_args, num_epochs, max_depth, batch_size, lr)
-        print(solved)
-        print(inv_string)
-        print(num_iter)
+        time1 = time.time()
+        for i in [1]:#[4,3,2,1]:
+            solved, inv_string, num_iter = run_on_problem(problem_num, cmd_args, num_epochs, max_depth, batch_size, lr, i, False, random_seeding)
+            print(solved)
+            print(inv_string)
+            print(num_iter)
+            if solved:
+                break
+        time2 = time.time()
+        print("The program for this particular problem took ", time2 - time1, " seconds")
         #except:
         #    print("An exception occurred")
     else:
+        time1 = time.time()
         num_solved = 0
         solved_probs = []
-        for p_num in range(1, 134): # all code2inv programs
-            if not (p_num in [2, 7, 8, 9, 10, 11, 12, 13, 14, 25, 30, 35, 37, 38, 39, 40, 41, 42, 43, 44, 45, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 60, 71, 73, 74, 76, 78, 79, 81, 82, 87, 88, 89, 90, 91, 92, 99, 114, 115, 116, 117, 124, 132, 133]):
+        unsolved_probs = {} # here I insert the error messages
+        for p_num in range(1,134):
+            unsolved_probs[p_num] = []
+        for p_num in [1, 3, 4, 5, 6, 16, 17, 18, 19, 20, 21, 22, 23, 24, 28, 29, 33, 34, 36, 59, 63, 64, 65, 66, 67, 68, 69, 70, 83, 84, 85, 86, 93, 94, 96, 100, 101, 102, 103, 104, 105, 107, 109, 110, 111, 112, 113, 118, 119, 120, 121, 122, 123, 125, 126, 127, 130, 131]: #range(1, 134): # all code2inv programs
+            if p_num in [16, 26, 27, 31, 32, 61, 62, 72, 75, 106]:
+                continue # unsolvable so we skip
+            #if not (p_num in [2, 7, 8, 9, 10, 11, 12, 13, 14, 25, 30, 35, 37, 38, 39, 40, 41, 42, 43, 44, 45, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 60, 71, 73, 74, 76, 78, 79, 81, 82, 87, 88, 89, 90, 91, 92, 99, 114, 115, 116, 117, 124, 132, 133]):
+            if True:#not (p_num in [7, 8, 9, 11, 12, 13, 14, 25, 30, 35, 37, 38, 39, 40, 42, 43, 44, 45, 47, 48, 49, 50, 51, 52, 53, 55, 56, 57, 58, 60, 71, 73, 74, 76, 78, 79, 81, 82, 132]):
                 print("Have solved ", num_solved, " / ", p_num - 1)
                 print("Now running on problem number ", p_num)
                 #time.sleep(1)
-                try:
-                    solved, inv_string, num_iter = run_on_problem(p_num, cmd_args, num_epochs, max_depth, batch_size, lr)
-                    print(solved)
-                    print(inv_string)
-                    print(num_iter)
-                    if solved == "Solved!":
-                        num_solved+=1
-                        solved_probs.append(p_num)
-                except:
-                    print("An error occurred")
-                    #time.sleep(5)
-            else:
-                solved_probs.append(p_num)
-                num_solved+=1
+                for i in [1]:#[4,3,2,1]:
+                    for attempt in [1,2,3]:
+                        try:
+                            solved, inv_string, num_iter = run_on_problem(p_num, cmd_args, num_epochs, max_depth, batch_size, lr, i, False, random_seeding)
+                            print(solved)
+                            print(inv_string)
+                            print(num_iter)
+                            if solved == "Solved!":
+                                num_solved+=1
+                                solved_probs.append(p_num)
+                                invariant_dict[p_num] = inv_string
+                                break
+                        except Exception as e:
+                            print("An error occurred: ", str(e)) # an empty message means smoothing error
+                            unsolved_probs[p_num] += [str(e)]
+                #time.sleep(5)
+            #else:
+            #    solved_probs.append(p_num)
+            #    num_solved+=1
         print(solved_probs)
         print(num_solved)
+        print(invariant_dict)
+        print("unsolved probs are ", unsolved_probs)
+        time2 = time.time()
+        print("Running on all programs took ", time2 - time1, " seconds") 
 
 
 
@@ -1121,16 +1374,4 @@ if False: #if __name__ == '__main__':
             assert False # have found a solution!
         elif result[2] == "loop": # we have an implication example, just add it into the training data
             train_data.append(result[3])
-            train_labels.append([3.])
-        else:
-            # I have a sat example from pre or post, but I don't know which category it falls into, so I check its output from the generated function and add it to the opposite label
-            #output = func_smoothed(result[3][0],result[3][1])
-            output = func_smoothed(*result[3])
-            if output: # then we actually need this datapoint to be false
-                train_data.append([[float(result_element) for result_element in result[3]], [-1000. for i in env]])
-                train_labels.append([2.])
-            else: # then the datapoint needs to be true, actually
-                train_data.append([[-1000. for i in env],[float(result_element) for result_element in result[3]]])
-                train_labels.append([1.])
-        verification_iter+=1
-
+ 
