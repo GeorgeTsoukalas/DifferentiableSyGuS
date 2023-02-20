@@ -206,16 +206,17 @@ class Edge(nn.Module):
         if not isfold:
             results = self.to_node.execute_on_batch(self.type_sign, valid_pos, **pass_dict)
             # plus weight
-            global arch_search
-            rand_prob = random.uniform(0, 1)
-            if arch_search or rand_prob > self.randset:
-                Ws = self.softmax(self.W[self.W_id==1])
-            else:
-                Ws = self.softmax(torch.ones_like(self.W)[self.W_id==1])
+            if results != []: 
+                global arch_search
+                rand_prob = random.uniform(0, 1)
+                if arch_search or rand_prob > self.randset:
+                    Ws = self.softmax(self.W[self.W_id==1])
+                else:
+                    Ws = self.softmax(torch.ones_like(self.W)[self.W_id==1])
 
-            for shape_id in range(len(results.shape)-1):
-                Ws = Ws.unsqueeze(-1)
-            results = torch.sum(Ws * results, dim=0).contiguous()
+                for shape_id in range(len(results.shape)-1):
+                    Ws = Ws.unsqueeze(-1)
+                results = torch.sum(Ws * results, dim=0).contiguous()
             return results
         # iterative opereation
         else:
@@ -321,6 +322,7 @@ class ProgramNode(nn.Module):
     def execute_on_batch(self, type_sign, prog_ids, **kwarg):
         #print("line 317 fuirst")
         # get keys
+        #print("Kwarg is ", kwarg)
         batch_id = id(kwarg['batch'])
         is_sequential = False if 'is_sequential' not in kwarg else kwarg['is_sequential']
         is_fold = False if 'isfold' not in kwarg else kwarg['isfold']
@@ -347,21 +349,30 @@ class ProgramNode(nn.Module):
         # execute program
         result = []
         self.temp_results[type_sign][input_key] = {}
-        if is_fold:
+        if is_fold: # this is not happening
             for b_id, p_id in enumerate(prog_ids):
                 prog = self.prog_dict[type_sign][p_id]
                 cur_result = prog.execute_on_batch(kwarg['batch'][b_id]).unsqueeze(0)
                 result.append(cur_result)
                 self.temp_results[type_sign][input_key][p_id] = cur_result
         else:
+            #print("not isfold")
+            #print("Prog ids are " , prog_ids)
             for p_id in prog_ids:
                 prog = self.prog_dict[type_sign][p_id]
-                cur_result = prog.execute_on_batch(**kwarg).unsqueeze(0)
-                result.append(cur_result)
+                #print("Next prog is ", prog)
+                cur_result = prog.execute_on_batch(**kwarg)
+                if cur_result != []: # again to get around this weird, not always reproducible error
+                    cur_result = prog.execute_on_batch(**kwarg).unsqueeze(0)
+                #print("Current result is ", cur_result) TODO: there is some problem here I don't understand
+                if cur_result != []:
+                    result.append(cur_result)
                 self.temp_results[type_sign][input_key][p_id] = cur_result
-
+        #print("Result is ", result)
         # return
-        result = torch.cat(result, dim=0).contiguous()
+        # I could not resolve the error mentioned below, 2/19
+        if result != []: # to get around some weird bug that's been happening where the result is empty? never gets past start function in grammar
+            result = torch.cat(result, dim=0).contiguous()
         if type_sign not in self.temp_input:
             self.temp_input[type_sign] = {}
         self.temp_input[type_sign][input_key] = kwarg['batch']
@@ -1110,7 +1121,7 @@ class ProgramGraph(nn.Module):
         global early_clear
         arch_search = cur_arch_train
         early_clear = clear_temp
-
+        #print("Batch in execute_graph is ", batch)
         # pad data into tensor
         Testing = True
         # The testing part of this is me trying to get it to work for implication constraints. I have put it this way so I have a reference to a working program
@@ -1119,10 +1130,14 @@ class ProgramGraph(nn.Module):
             batch_np = np.array(batch).reshape(2*batch_len, len(batch[0][0])) #generalized from 2 dim inputs
             batch_input = [torch.tensor(traj) for traj in batch_np]
             batch_padded, batch_lens= torch.tensor(batch_np).float(), batch_input[0].size(0) #.float() as np arrays auto convert to float64 = double I think
+            #print("Batch stuff ! ", batch_padded, batch_lens)
             root_program = list(self.root_node.prog_dict.values())[0][0]
+            #print("root program is ", root_program)
             type_sign = list(self.root_node.prog_dict.keys())[0]
+            #print("type sign is ", type_sign)
             out_padded = self.root_node.execute_on_batch(type_sign = type_sign, prog_ids=[0], batch = batch_padded, batch_lens = batch_lens)
-            out_padded = torch.reshape(out_padded, (batch_len, 2)) # Hacky solution here - flatten the trajectories so I only have to call execute on batch once, calls here are a major bottleneck.
+            if out_padded != []: # again to get around the torch.cat error from line ~ 360
+                out_padded = torch.reshape(out_padded, (batch_len, 2)) # Hacky solution here - flatten the trajectories so I only have to call execute on batch once, calls here are a major bottleneck.
             if clear_temp:
                 self.clear_graph_results()
             return out_padded
