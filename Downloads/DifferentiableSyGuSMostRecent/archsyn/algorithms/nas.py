@@ -18,8 +18,8 @@ import os
 import time 
 
 class NAS(ProgramLearningAlgorithm):
-    regularization = False
-    rat = 0.1
+    regularization = True
+    rat = 0.0003
     def __init__(self, frontier_capacity=float('inf')):
         self.frontier_capacity = frontier_capacity
 
@@ -91,7 +91,7 @@ class NAS(ProgramLearningAlgorithm):
                 for param in model_params_list:
                     #print("Param is ", param)
                     #    print(torch.norm(param, 1)**2)
-                    l1_regularization += torch.norm(param, 1)**2
+                    l1_regularization += torch.norm(param, 1)
                     if ctr == 0:
                         l2_regularization += (torch.norm(param, 2)**2 - 1) # bias term comes after an eq term, so swap between
                         ctr = 1
@@ -105,7 +105,7 @@ class NAS(ProgramLearningAlgorithm):
                 #print("Predicted value loss is ", lossfxn(train_predicted, true_vals))
                 loss = lossfxn(train_predicted, true_vals)
                 if self.regularization:
-                    loss = lossfxn(train_predicted, true_vals) + self.rat * l2_regularization
+                    loss = lossfxn(train_predicted, true_vals) + self.rat * l1_regularization #self.rat * l2_regularization
                 else:
                     loss = lossfxn(train_predicted, true_vals)
                 if model_optim is not None:
@@ -333,14 +333,14 @@ class NAS(ProgramLearningAlgorithm):
         for param in clip_params:
             #print("Param is ", param)
             #    print(torch.norm(param, 1)**2)
-            l1_regularization += torch.norm(param, 1)**2
+            l1_regularization += torch.norm(param, 1)
             if ctr == 0:
                 l2_regularization += (torch.norm(param, 2)**2 - 1) # bias term comes after an eq term, so swap between
                 ctr = 1
             else:
                 ctr = 0
         if self.regularization:
-            loss =lossfxn(predicted_data, label_data) + self.rat * l2_regularization
+            loss =lossfxn(predicted_data, label_data) + self.rat * l1_regularization #self.rat * l2_regularization
         else:
             loss = lossfxn(predicted_data, label_data)
 
@@ -358,7 +358,7 @@ class NAS(ProgramLearningAlgorithm):
             for param in model_params_list:
             #    print("Param is ", param)
             #    print(torch.norm(param, 1)**2)
-                l1_regularization += torch.norm(param, 1)**2
+                l1_regularization += torch.norm(param, 1)
             #print(l1_regularization)
         if manual_loss is not None:
             loss += manual_loss
