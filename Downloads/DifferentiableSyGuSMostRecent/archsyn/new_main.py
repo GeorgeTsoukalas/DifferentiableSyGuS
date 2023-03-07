@@ -111,7 +111,7 @@ def parse_args():
                         help="learning rate")
     parser.add_argument('--neural_epochs', type=int, required=False, default=4,
                         help="training epochs for neural programs")
-    parser.add_argument('--symbolic_epochs', type=int, required=False, default=6,
+    parser.add_argument('--symbolic_epochs', type=int, required=False, default=20,
                         help="training epochs for symbolic programs")
     # parser.add_argument('--lossfxn', type=str, required=True, choices=["crossentropy", "bcelogits", "softf1"],
     #                     help="loss function for training")
@@ -892,11 +892,11 @@ def load_spreadsheet_data_test(problem_num, env): # While I am not 100% sure, I 
 
 if __name__ == '__main__':
     cmd_args = parse_args()
-    num_epochs = 20 
+    num_epochs = 50
     max_depth = 2
-    batch_size = 4
+    batch_size = 50
     lr = 0.045
-    random_seeding = False # False for no random seed 
+    random_seeding = True # False for no random seed 
     pre_cooked_data = False # testing to see what 
     problem_num = cmd_args.problem_num
     #env = variable_dictionary[problem_num]
@@ -950,7 +950,7 @@ if __name__ == '__main__':
         unsolved_probs = {} # here I insert the error messages
         for p_num in range(1,134):
             unsolved_probs[p_num] = []
-        for p_num in [1, 3, 4, 5, 6, 16, 17, 18, 19, 20, 21, 22, 23, 24, 28, 29, 33, 34, 36, 59, 63, 64, 65, 66, 67, 68, 69, 70, 83, 84, 85, 86, 93, 94, 96, 100, 101, 102, 103, 104, 105, 107, 109, 110, 111, 112, 113, 118, 119, 120, 121, 122, 123, 125, 126, 127, 130, 131]: #range(1, 134): # all code2inv programs
+        for p_num in range(1,134): #[1, 3, 4, 5, 6, 16, 17, 18, 19, 20, 21, 22, 23, 24, 28, 29, 33, 34, 36, 59, 63, 64, 65, 66, 67, 68, 69, 70, 83, 84, 85, 86, 93, 94, 96, 100, 101, 102, 103, 104, 105, 107, 109, 110, 111, 112, 113, 118, 119, 120, 121, 122, 123, 125, 126, 127, 130, 131]: #range(1, 134): # all code2inv programs
             if p_num in [16, 26, 27, 31, 32, 61, 62, 72, 75, 106]:
                 continue # unsolvable so we skip
             #if not (p_num in [2, 7, 8, 9, 10, 11, 12, 13, 14, 25, 30, 35, 37, 38, 39, 40, 41, 42, 43, 44, 45, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 60, 71, 73, 74, 76, 78, 79, 81, 82, 87, 88, 89, 90, 91, 92, 99, 114, 115, 116, 117, 124, 132, 133]):
@@ -959,7 +959,7 @@ if __name__ == '__main__':
                 print("Now running on problem number ", p_num)
                 #time.sleep(1)
                 for i in [1]:#[4,3,2,1]:
-                    for attempt in [1,2,3]:
+                    for attempt in [1]:#[1,2,3,4,5,6,7,8,9,10]:
                         try:
                             solved, inv_string, num_iter = run_on_problem(p_num, cmd_args, num_epochs, max_depth, batch_size, lr, i, False, random_seeding)
                             print(solved)
